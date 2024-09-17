@@ -1,6 +1,6 @@
 import os
 import uvicorn
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 import vertexai
@@ -65,18 +65,26 @@ app.location = location
 
 templates = Jinja2Templates(directory="templates")
 
+class SearchQueryPayload(BaseModel):
+    search_query: str
+    engine_id: str = Field(default="gov-way_1725522863016", description="The engine ID (optional)")
+    datastore_project_id: str = Field(default="nuttee-lab-00", description="The datastore project ID (optional)")
+    datastore_loc: str = Field(default="global", description="The datastore location (optional)")
+    model_version: str = Field(default="gemini-1.5-flash-001/answer_gen/v2", description="The model version (optional)")
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/search")
-async def search_with_answer(
-    search_query: str,
-    engine_id: str = search_engine_id,
-    datastore_project_id: str = project_id,
-    datastore_loc: str = datastore_location,
-    model_version: str = "gemini-1.5-flash-001/answer_gen/v2",
-) -> str:
+async def search_with_answer(payload: SearchQueryPayload) -> str:
+    search_query = payload.search_query
+    engine_id = payload.engine_id
+    datastore_project_id = payload.datastore_project_id
+    datastore_loc = payload.datastore_loc
+    model_version = payload.model_version
+
+    # Create a client
     #  For more information, refer to:
     # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
     client_options = (
